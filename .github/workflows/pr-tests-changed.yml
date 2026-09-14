@@ -43,6 +43,9 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       GITHUB_REPOSITORY: ${{ github.repository }}
       WORKSPACE: ${{ github.workspace }}
+      CLOUDPODS_KEYSTONE_URL: ${{ secrets.CLOUDPODS_KEYSTONE_URL }}
+      CLOUDPODS_USER: ${{ secrets.CLOUDPODS_USER }}
+      CLOUDPODS_PASSWORD: ${{ secrets.CLOUDPODS_PASSWORD }}
 
     steps:
       - name: Checkout PR
@@ -87,7 +90,7 @@ jobs:
         id: compute
         if: steps.changed.outputs.changed == 'true'
         run: |
-          python3 .github/scripts/compute_requirements.py \
+          python3 .github/scripts/cli.py compute-requirements \
             --repo "$GITHUB_WORKSPACE" \
             --changed-files changed_files.txt \
             --output vm_requirements.json
@@ -101,12 +104,15 @@ jobs:
         if: steps.changed.outputs.changed == 'true'
         run: |
           set -o pipefail
-          python3 .github/scripts/launch_qemu_env.py \
+          python3 .github/scripts/cli.py launch-qemu-env \
             --requirements vm_requirements.json \
-            --output vm_info.json \
-            --create-server "$GITHUB_WORKSPACE/tools/cloudpods/create_server.py" 2>&1 | tee launch.log
+            --output vm_info.json 2>&1 | tee launch.log
           echo "vm_info:"
           cat vm_info.json
+        env:
+          CLOUDPODS_KEYSTONE_URL: ${{ secrets.CLOUDPODS_KEYSTONE_URL }}
+          CLOUDPODS_USER: ${{ secrets.CLOUDPODS_USER }}
+          CLOUDPODS_PASSWORD: ${{ secrets.CLOUDPODS_PASSWORD }}
 
       # --------------------------------------------------------
       # 步骤 4：在 QEMU 中执行被修改的测试脚本
@@ -116,7 +122,7 @@ jobs:
         if: steps.changed.outputs.changed == 'true'
         run: |
           set -o pipefail
-          python3 .github/scripts/run_tests_in_qemu.py \
+          python3 .github/scripts/cli.py run-tests-in-qemu \
             --vm-info vm_info.json \
             --repo "$GITHUB_WORKSPACE" \
             --requirements vm_requirements.json \
@@ -131,7 +137,7 @@ jobs:
         if: steps.changed.outputs.changed == 'true' && always()
         run: |
           if [ -f test_results.json ]; then
-            python3 .github/scripts/post_pr_comment.py \
+            python3 .github/scripts/cli.py post-pr-comment \
               --results test_results.json || true
           else
             echo "No test_results.json, skip comment"
@@ -148,8 +154,11 @@ jobs:
         if: always()
         run: |
           if [ -f vm_info.json ]; then
-            python3 .github/scripts/cleanup_cloudpods.py --vm-info vm_info.json \
-              --create-server "$GITHUB_WORKSPACE/tools/cloudpods/create_server.py" || true
+            python3 .github/scripts/cli.py cleanup-cloudpods --vm-info vm_info.json || true
           else
             echo "No vm_info.json, skip cleanup"
           fi
+        env:
+          CLOUDPODS_KEYSTONE_URL: ${{ secrets.CLOUDPODS_KEYSTONE_URL }}
+          CLOUDPODS_USER: ${{ secrets.CLOUDPODS_USER }}
+          CLOUDPODS_PASSWORD: ${{ secrets.CLOUDPODS_PASSWORD }}
