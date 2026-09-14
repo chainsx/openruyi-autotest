@@ -36,6 +36,14 @@ from typing import Dict, List, Optional
 from core.base import BaseCommand
 from core.ssh import SSHClient
 
+
+def _exec3(ssh: SSHClient, cmd: str, **kw):
+    """兼容辅助：exec 返回 ExecResult，这里解包为 (code, stdout, stderr) 三元组"""
+    r = ssh.exec(cmd, **kw)
+    return r.code, r.stdout, r.stderr
+
+
+
 logger = logging.getLogger("ci_cli.commands.run_tests_in_qemu")
 
 
@@ -71,7 +79,7 @@ def remote_prepare_env(ssh: SSHClient, sudo_pw: str) -> str:
     ssh.exec(f"echo '{sudo_pw}' | sudo -S true")
 
     # 1. 基础工具：tar / beakerlib（QEMU 最小系统可能缺失）
-    code, out, err = ssh.exec(
+    code, out, err = _exec3(ssh,
         f"echo '{sudo_pw}' | sudo -S dnf install -y tar gzip python3-pip beakerlib python-six 2>&1 | tail -20",
         timeout=1800,
     )
@@ -82,12 +90,12 @@ def remote_prepare_env(ssh: SSHClient, sudo_pw: str) -> str:
 
     # 2. 优先用 dnf 装 tmt（openruyi 仓库有 python-tmt + ruamel-yaml-clib rpm，
     #    避免 pip 在 riscv64 上编译 C 扩展）
-    code, out, err = ssh.exec(
+    code, out, err = _exec3(ssh,
         f"echo '{sudo_pw}' | sudo -S dnf install -y tmt 2>&1 | tail -15",
         timeout=1800,
     )
     if code == 0:
-        code2, out2, err2 = ssh.exec("tmt --version", timeout=60)
+        code2, out2, err2 = _exec3(ssh, "tmt --version", timeout=60)
         if code2 == 0:
             # tmt 可用，但还要自检 fmf 扫描：openruyi 的 python-fmf 1.7.0 在
             # riscv64 上扫描 fmf 树可能死循环/极慢（tmt discover 依赖 fmf.Tree），
@@ -100,7 +108,7 @@ def remote_prepare_env(ssh: SSHClient, sudo_pw: str) -> str:
                 "t=fmf.Tree('.');print('FMF_SCAN_OK',round(time.time()-t0,1),"
                 "'tests',len(t.tests))\" 2>&1 | tail -3"
             )
-            pcode, pout, perr = ssh.exec(probe, timeout=120)
+            pcode, pout, perr = _exec3(ssh, probe, timeout=120)
             if pcode == 0 and "FMF_SCAN_OK" in pout:
                 logger.info("[QEMU] fmf scan OK: %s", pout.strip()[-120:])
                 return "tmt"
@@ -111,19 +119,19 @@ def remote_prepare_env(ssh: SSHClient, sudo_pw: str) -> str:
     logger.warning("[QEMU] dnf tmt failed: code=%s\n%s\n%s", code, out[-1500:], err[-500:])
 
     # 3. dnf 失败回退 pip：先装编译工具链，再 pip 装 tmt
-    code, out, err = ssh.exec(
+    code, out, err = _exec3(ssh,
         f"echo '{sudo_pw}' | sudo -S dnf install -y gcc gcc-c++ python3-devel rust cargo 2>&1 | tail -10",
         timeout=1800,
     )
     if code != 0 and "Nothing to do" not in out:
         logger.warning("[QEMU] dnf install toolchain failed (non-fatal): code=%s", code)
 
-    code, out, err = ssh.exec(
+    code, out, err = _exec3(ssh,
         f"echo '{sudo_pw}' | sudo -S pip3 install --break-system-packages tmt 2>&1 | tail -30",
         timeout=1800,
     )
     if code == 0:
-        code2, out2, err2 = ssh.exec("tmt --version", timeout=60)
+        code2, out2, err2 = _exec3(ssh, "tmt --version", timeout=60)
         if code2 == 0:
             logger.info("[QEMU] tmt ready (pip): %s, checking fmf scan...", out2.strip()[:200])
             probe = (
@@ -132,7 +140,7 @@ def remote_prepare_env(ssh: SSHClient, sudo_pw: str) -> str:
                 "t=fmf.Tree('.');print('FMF_SCAN_OK',round(time.time()-t0,1),"
                 "'tests',len(t.tests))\" 2>&1 | tail -3"
             )
-            pcode, pout, perr = ssh.exec(probe, timeout=120)
+            pcode, pout, perr = _exec3(ssh, probe, timeout=120)
             if pcode == 0 and "FMF_SCAN_OK" in pout:
                 logger.info("[QEMU] fmf scan OK: %s", pout.strip()[-120:])
                 return "tmt"
@@ -143,7 +151,7 @@ def remote_prepare_env(ssh: SSHClient, sudo_pw: str) -> str:
     logger.warning("[QEMU] pip tmt install failed: code=%s\n%s\n%s", code, out[-2000:], err[-500:])
 
     # 4. tmt 彻底不可用：退化为直接执行 beakerlib 测试脚本
-    code, out, err = ssh.exec(
+    code, out, err = _exec3(ssh,
         "test -f /usr/share/beakerlib/beakerlib.sh && echo ok", timeout=60)
     if code == 0:
         logger.info("[QEMU] tmt unavailable, will run tests directly with beakerlib")
@@ -174,7 +182,7 @@ def run_tests_direct(ssh: SSHClient, sudo_pw: str, repo_dir: str,
         # 在 QEMU 内读取 main.fmf 的 test: 字段（或回退 test.sh/runtest.sh/test）
         script_rel = None
         fmf_file = os.path.join(test_dir, "main.fmf")
-        code, out, err = ssh.exec(
+        code, out, err = _exec3(ssh,
             f"cat {fmf_file} 2>/dev/null | grep -E '^[[:space:]]*test:' | head -1",
             timeout=30,
         )
@@ -182,7 +190,7 @@ def run_tests_direct(ssh: SSHClient, sudo_pw: str, repo_dir: str,
             script_rel = out.strip().split(":", 1)[1].strip().strip('"').strip("'")
         if not script_rel:
             for cand in ("test.sh", "runtest.sh", "test"):
-                c2, o2, e2 = ssh.exec(f"test -f {test_dir}/{cand} && echo ok", timeout=30)
+                c2, o2, e2 = _exec3(ssh, f"test -f {test_dir}/{cand} && echo ok", timeout=30)
                 if c2 == 0 and "ok" in o2:
                     script_rel = cand
                     break
@@ -199,7 +207,7 @@ def run_tests_direct(ssh: SSHClient, sudo_pw: str, repo_dir: str,
             f"bash {remote_script} 2>&1"
         )
         logger.info("[QEMU] direct running: %s...", cmd[:200])
-        code, out, err = ssh.exec(cmd, timeout=timeout)
+        code, out, err = _exec3(ssh, cmd, timeout=timeout)
         output = out + ("\n[stderr]\n" + err if err else "")
         # beakerlib 输出（1.30+ 带时间戳/方括号）：
         #   :: [ 15:43:03 ] :: [   PASS   ] :: message
@@ -243,7 +251,7 @@ def remote_setup_topology(ssh: SSHClient, sudo_pw: str, host_ip: str) -> bool:
         "TEST_SERVER_1_USER=openruyi\n"
         f"TEST_SERVER_1_PASSWORD={sudo_pw}\n"
     )
-    code, out, err = ssh.exec(
+    code, out, err = _exec3(ssh,
         f"cat > ~/openruyi-autotest/topology.env << 'EOF'\n{content}\nEOF",
         timeout=30,
     )
@@ -270,7 +278,7 @@ def run_tmt_tests(ssh: SSHClient, sudo_pw: str, test_paths: List[str],
         f"provision --feeling-safe 2>&1"
     )
     logger.info("[QEMU] Running: %s...", cmd[:300])
-    code, out, err = ssh.exec(cmd, timeout=timeout)
+    code, out, err = _exec3(ssh, cmd, timeout=timeout)
 
     output = out + ("\n[stderr]\n" + err if err else "")
     logger.info("[QEMU] tmt exit=%s, output length=%s", code, len(output))
@@ -388,7 +396,7 @@ class RunTestsInQemuCommand(BaseCommand):
                 try:
                     # 2. 先确保 tar 存在（QEMU 最小系统可能没有，解压依赖它）
                     ssh.exec(f"echo '{ssh_pw}' | sudo -S true")
-                    code, out, err = ssh.exec(
+                    code, out, err = _exec3(ssh,
                         "command -v tar >/dev/null 2>&1 || "
                         f"(echo '{ssh_pw}' | sudo -S dnf install -y tar gzip 2>&1 | tail -5)",
                         timeout=600,
@@ -402,7 +410,7 @@ class RunTestsInQemuCommand(BaseCommand):
                     ssh.exec("mkdir -p /home/openruyi")
                     if not ssh.put_file(tarball, "/home/openruyi/repo.tar.gz"):
                         raise RuntimeError("upload repo failed")
-                    code, out, err = ssh.exec(
+                    code, out, err = _exec3(ssh,
                         "cd /home/openruyi && tar xzf repo.tar.gz && rm -f repo.tar.gz",
                         timeout=300)
                     if code != 0:
