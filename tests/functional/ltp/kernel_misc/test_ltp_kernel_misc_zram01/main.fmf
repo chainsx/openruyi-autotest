@@ -1,12 +1,14 @@
 summary: Functional test - LTP - kernel_misc - zram01
+framework: beakerlib
 test: ./test.sh
 tag:
  - functional
  - ltp
  - kernel_misc
-duration: 30m
+duration: 60m
 tier: 1
 path: /tests/functional/ltp/kernel_misc/test_ltp_kernel_misc_zram01
 require:
  - ltp
  - beakerlib
+ - ntfs-3g
