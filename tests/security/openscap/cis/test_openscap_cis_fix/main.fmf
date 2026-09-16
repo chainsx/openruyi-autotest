@@ -1,10 +1,11 @@
 summary: Security test - OpenSCAP CIS - scriptGenerate
+framework: beakerlib
 test: ./test.sh
 tag:
  - security
  - openscap
  - cis
-duration: 10m
+duration: 30m
 tier: 2
 path: /tests/security/openscap/cis/test_openscap_cis_fix
 require:

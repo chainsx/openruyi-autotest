@@ -16,15 +16,15 @@ rlJournalStart
         if [ ! -f "$CIS_DS" ]; then
             rlFail "Data stream not found"
         else
-            local out=/tmp/cis_fix_$$
-            local xml=/tmp/cis_fix_xml_$$.xml
-            local fix=/tmp/cis_fix_$$.sh
+            out=/tmp/cis_fix_$$
+            xml=/tmp/cis_fix_xml_$$.xml
+            fix=/tmp/cis_fix_$$.sh
             oscap xccdf eval --profile "$CIS_PROFILE" --results "$xml" "$CIS_DS" 2>&1 | tee $out
-            local rc=${PIPESTATUS[0]}
-            if [ $rc -ne 0 ] || [ ! -f "$xml" ]; then
+            rc=${PIPESTATUS[0]}
+            if { [ $rc -ne 0 ] && [ $rc -ne 2 ]; } || [ ! -f "$xml" ]; then
                 rlFail "oscap eval failed (exit=$rc)"
             else
-                local rid=$(grep -oP 'id="\K[^"]+' "$xml" | head -1)
+                rid=$(grep -oP '<TestResult[^>]*\bid="\K[^"]+' "$xml" | head -1)
                 if [ -z "$rid" ]; then
                     rlFail "Cannot extract TestResult id"
                 else

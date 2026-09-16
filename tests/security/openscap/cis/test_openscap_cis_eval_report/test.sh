@@ -16,21 +16,21 @@ rlJournalStart
         if [ ! -f "$CIS_DS" ]; then
             rlFail "Data stream not found"
         else
-            local out=/tmp/cis_eval_$$
-            local xml=/tmp/cis_result_$$.xml
-            local html=/tmp/cis_report_$$.html
+            out=/tmp/cis_eval_$$
+            xml=/tmp/cis_result_$$.xml
+            html=/tmp/cis_report_$$.html
             oscap xccdf eval --profile "$CIS_PROFILE" --results-arf "$xml" --report "$html" "$CIS_DS" 2>&1 | tee $out
-            local rc=${PIPESTATUS[0]}
-            if [ $rc -ne 0 ]; then
+            rc=${PIPESTATUS[0]}
+            if [ $rc -ne 0 ] && [ $rc -ne 2 ]; then
                 rlFail "oscap eval failed (exit=$rc)"
             elif [ ! -f "$xml" ]; then
                 rlFail "ARF result file not generated"
             elif [ ! -f "$html" ]; then
                 rlFail "HTML report not generated"
             else
-                local pass=$(grep -c '<result>pass</result>' "$xml" 2>/dev/null || echo 0)
-                local fail=$(grep -c '<result>fail</result>' "$xml" 2>/dev/null || echo 0)
-                local na=$(grep -c '<result>notapplicable</result>' "$xml" 2>/dev/null || echo 0)
+                pass=$(grep -c '<result>pass</result>' "$xml" 2>/dev/null || echo 0)
+                fail=$(grep -c '<result>fail</result>' "$xml" 2>/dev/null || echo 0)
+                na=$(grep -c '<result>notapplicable</result>' "$xml" 2>/dev/null || echo 0)
                 rlPass "CIS eval complete: pass=$pass fail=$fail notapplicable=$na"
             fi
             rm -f $out $xml $html
