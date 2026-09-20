@@ -152,6 +152,29 @@ _stressNgTaintCheck() {
 
 
 
+# Extract bogo ops/s (real time) for a stressor from a stress-ng metrics log
+_stressNgBogoOps() {
+    local log="$1"
+    local stressor="${2:-}"
+
+    awk -v stressor="$stressor" '
+        /^stress-ng:[[:space:]]*metrc:/ {
+            row = $0
+            sub(/^stress-ng:[[:space:]]*metrc:[[:space:]]*\[[0-9]+\][[:space:]]*/, "", row)
+            n = split(row, f, /[[:space:]]+/)
+            if (n >= 7 && f[2] ~ /^[0-9]+$/ && f[6] ~ /^[0-9]+([.][0-9]+)?$/) {
+                if (stressor != "" && f[1] == stressor && !found) {
+                    print f[6]
+                    found = 1
+                }
+                if (first == "") first = f[6]
+            }
+        }
+        END { if (!found && first != "") print first }
+    ' "$log"
+}
+
+
 # Validate stress-ng result from log file
 
 # Checks: successful run completed, failed=0, bogo ops > 0
@@ -202,13 +225,7 @@ _stressNgValidate() {
 
     local bogo
 
-    bogo=$(grep -oP "$stressor\s+.*?\s+(\d+\.?\d*)\s+\(\s*real\s+time\s*\)" "$log" | grep -oP '\d+\.?\d*(?=\s*\(\s*real)' | head -1)
-
-    if [ -z "$bogo" ]; then
-
-    bogo=$(grep "$stressor" "$log" | grep -oP '\d+\.?\d+(?=\s*\(\s*real)' | head -1)
-
-    fi
+    bogo=$(_stressNgBogoOps "$log" "$stressor")
 
     if [ -n "$bogo" ] && [ "$(echo "$bogo > 0" | bc 2>/dev/null || echo 1)" -eq 1 ]; then
 

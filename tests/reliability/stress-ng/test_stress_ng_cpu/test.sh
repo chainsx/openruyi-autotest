@@ -44,7 +44,7 @@ rlJournalStart
 
     local bogo
 
-    bogo=$(grep "cpu" "$log" | grep -oP '\d+\.?\d*(?=\s*\(\s*real)' | head -1)
+    bogo=$(_stressNgBogoOps "$log" "cpu")
 
     bogo_vals+=("$bogo")
 
