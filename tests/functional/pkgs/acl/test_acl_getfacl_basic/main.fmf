@@ -1,4 +1,5 @@
 summary: Functional test - acl - getfacl basic functionality
+framework: beakerlib
 test: ./test.sh
 tag:
  - functional

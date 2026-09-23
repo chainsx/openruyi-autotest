@@ -46,25 +46,29 @@ rlJournalStart
 
 
 
-    # test 1.3: use -a parameteronlydisplay access ACL
+    # test 1.3: use -a parameter only display access ACL
 
-    rlRun "getfacl -a testfile 2>&1 | grep -qE \"user::|group::\"" 0 "use -a parameterview access ACL"
+    rlRun "getfacl -a testfile > out_getfacl_a.txt 2>&1" 0 "use -a parameter view access ACL"
 
-    rlAssertGrep "user::" "$(getfacl -a testfile 2>&1)" "-a outputcontains access ACL entries"
+    rlAssertGrep "user::" out_getfacl_a.txt
 
 
 
-    # test 1.4: use -d parameteronlydisplay default ACL
+    # test 1.4: set default ACL on directory and verify it
 
-    rlRun "getfacl -d testfile 2>&1 | grep -qE \"user::|default\"" 0 "use -d parameterview default ACL contains default entries"
+    rlRun "setfacl -m d:u::rwx,d:g::r-x,d:o::--- testdir" 0 "set default ACL on testdir"
+
+    rlRun "getfacl testdir > out_getfacl_default.txt 2>&1" 0 "getfacl testdir with default ACL"
+
+    rlAssertGrep "default:user::rwx" out_getfacl_default.txt
 
 
 
     # test 1.5: use -c parameternodisplayheader
 
-    rlRun "getfacl -c testfile 2>&1" 0 "use -c parameternodisplayheader"
+    rlRun "getfacl -c testfile > out_getfacl_c.txt 2>&1" 0 "use -c parameter no display header"
 
-    rlAssertNotGrep "^# file:" "$(getfacl -c testfile 2>&1)" "-c outputnocontainsheader"
+    rlAssertNotGrep "^# file:" out_getfacl_c.txt
 
 
 
@@ -101,4 +105,3 @@ rlJournalStart
     rlJournalPrintText
 
 rlJournalEnd
-
