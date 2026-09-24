@@ -26,7 +26,7 @@ rlJournalStart
 
     rlPhaseStartTest "VM stress (memory)"
 
-    local log="$TmpDir/vm.log"
+    log="$TmpDir/vm.log"
 
     rlRun "stress-ng --vm 2 --vm-bytes 128M --timeout 30s --metrics-brief --log-file $log 2>&1 | tail -5" 0 "--vm 2x128M"
 
@@ -38,7 +38,7 @@ rlJournalStart
 
     rlPhaseStartTest "MMAP stress"
 
-    local log="$TmpDir/mmap.log"
+    log="$TmpDir/mmap.log"
 
     rlRun "stress-ng --mmap 2 --timeout 30s --metrics-brief --log-file $log 2>&1 | tail -5" 0 "--mmap 2"
 
@@ -50,7 +50,7 @@ rlJournalStart
 
     rlPhaseStartTest "MADVISE stress"
 
-    local log="$TmpDir/madvise.log"
+    log="$TmpDir/madvise.log"
 
     rlRun "stress-ng --madvise 2 --timeout 30s --metrics-brief --log-file $log 2>&1 | tail -5" 0 "--madvise 2"
 
@@ -62,7 +62,7 @@ rlJournalStart
 
     rlPhaseStartTest "Memory combined stress"
 
-    local log="$TmpDir/mem_combo.log"
+    log="$TmpDir/mem_combo.log"
 
     # simultaneously VM + MMAP
 

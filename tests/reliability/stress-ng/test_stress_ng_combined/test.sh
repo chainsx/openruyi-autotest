@@ -28,7 +28,7 @@ rlJournalStart
 
     rlPhaseStartTest "combined stress: CPU+MEM+PROC"
 
-    local log="$TmpDir/combo1.log"
+    log="$TmpDir/combo1.log"
 
     # simultaneously CPU(2thread) + VM(128M) + FORK(2thread)
 
@@ -58,11 +58,11 @@ rlJournalStart
 
     # useDocumentation recommends 13 workload (time)
 
-    local log="$TmpDir/combo2.log"
+    log="$TmpDir/combo2.log"
 
-    local workloads="cpu context fork get mmap vm-splice wait zombie"
+    workloads="cpu context fork get mmap vm-splice wait zombie"
 
-    local args=""
+    args=""
 
     for w in $workloads; do args="$args --$w 1"; done
 
@@ -76,7 +76,6 @@ rlJournalStart
 
     # count passed count
 
-    local passed
 
     passed=$(grep -oP 'passed:\s*\K\d+' "$log" | awk '{s+=$1} END {print s}')
 
@@ -92,7 +91,6 @@ rlJournalStart
 
     # confirmnofailed
 
-    local failed
 
     failed=$(grep -oP 'failed:\s*\K\d+' "$log" | awk '{s+=$1} END {print s}')
 
@@ -112,7 +110,7 @@ rlJournalStart
 
     rlPhaseStartTest "metrics analysis"
 
-    local log="$TmpDir/combo1.log"
+    log="$TmpDir/combo1.log"
 
     # analysis usr/sys time 
 
@@ -122,7 +120,6 @@ rlJournalStart
 
     # usr time shouldtotaltime
 
-    local total_usr total_sys
 
     total_usr=$(grep -oP 'usr time\s+\K[\d.]+' "$log" | head -1)
 

@@ -28,7 +28,7 @@ rlJournalStart
 
     rlPhaseStartTest "HDD stress (IO)"
 
-    local log="$TmpDir/hdd.log"
+    log="$TmpDir/hdd.log"
 
     rlRun "stress-ng --hdd 2 --hdd-bytes 32M --temp-path $TmpDir/io_test --timeout 30s --metrics-brief --log-file $log 2>&1 | tail -5" 0 "--hdd 2"
 
@@ -42,7 +42,7 @@ rlJournalStart
 
     # aio needs libaio supports, possiblesystemnot supported
 
-    local log="$TmpDir/aio.log"
+    log="$TmpDir/aio.log"
 
     stress-ng --aio 2 --timeout 20s --metrics-brief --log-file "$log" 2>&1 | tail -5
 
@@ -64,7 +64,7 @@ rlJournalStart
 
     rlPhaseStartTest "GETDENT stress (directory)"
 
-    local log="$TmpDir/getdent.log"
+    log="$TmpDir/getdent.log"
 
     rlRun "stress-ng --getdent 2 --timeout 20s --metrics-brief --log-file $log 2>&1 | tail -5" 0 "--getdent 2"
 

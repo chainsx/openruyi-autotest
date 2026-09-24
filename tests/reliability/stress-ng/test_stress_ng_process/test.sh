@@ -26,7 +26,7 @@ rlJournalStart
 
     rlPhaseStartTest "FORK stress"
 
-    local log="$TmpDir/fork.log"
+    log="$TmpDir/fork.log"
 
     rlRun "stress-ng --fork 4 --timeout 30s --metrics-brief --log-file $log 2>&1 | tail -5" 0 "--fork 4"
 
@@ -42,7 +42,7 @@ rlJournalStart
 
     rlPhaseStartTest "CONTEXT switch stress"
 
-    local log="$TmpDir/context.log"
+    log="$TmpDir/context.log"
 
     rlRun "stress-ng --context 4 --timeout 30s --metrics-brief --log-file $log 2>&1 | tail -5" 0 "--context 4"
 
@@ -56,7 +56,7 @@ rlJournalStart
 
     # zombie willproducedprocesspost, possiblehaspreerror
 
-    local log="$TmpDir/zombie.log"
+    log="$TmpDir/zombie.log"
 
     rlRun "stress-ng --zombie 2 --timeout 15s --metrics-brief --log-file $log 2>&1 | tail -5" 0 "--zombie 2"
 
@@ -68,7 +68,7 @@ rlJournalStart
 
     rlPhaseStartTest "WAIT stress (get/gettid)"
 
-    local log="$TmpDir/wait.log"
+    log="$TmpDir/wait.log"
 
     # --get: callwith getpid/getppid 
 

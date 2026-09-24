@@ -28,11 +28,11 @@ rlJournalStart
 
     rlPhaseStartTest "CPU stress rampthread"
 
-    local bogo_vals=()
+    bogo_vals=()
 
     for t in 1 2 4; do
 
-    local log="$TmpDir/cpu_${t}.log"
+    log="$TmpDir/cpu_${t}.log"
 
     rlRun "stress-ng --cpu $t --timeout 30s --metrics-brief --log-file $log 2>&1 | tail -5" 0 "CPU $t thread"
 
@@ -42,7 +42,6 @@ rlJournalStart
 
     # extract bogo ops/s
 
-    local bogo
 
     bogo=$(_stressNgBogoOps "$log" "cpu")
 
@@ -83,4 +82,3 @@ rlJournalStart
     rlJournalPrintText
 
 rlJournalEnd
-
